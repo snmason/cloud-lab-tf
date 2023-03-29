@@ -7,6 +7,8 @@ resource "aws_ecs_cluster" "cluster" {
 
   configuration {
     execute_command_configuration {
+      logging = "OVERRIDE"
+
       log_configuration {
         cloud_watch_log_group_name = aws_cloudwatch_log_group.ecs_cluster.name
       }
@@ -15,7 +17,7 @@ resource "aws_ecs_cluster" "cluster" {
 }
 
 resource "aws_cloudwatch_log_group" "ecs_cluster" {
-  name = "ECSLogGroup"
+  name = "awslogs-nginx-ecs"
   }
 
 // Right now just want to create one of these if the cluster is enabled. 
@@ -33,6 +35,10 @@ resource "aws_ecs_cluster_capacity_providers" "cluster" {
     base = 1
     capacity_provider = "FARGATE"
   }
+
+  depends_on = [ 
+    aws_ecs_cluster.cluster
+  ]
 }
 
 
@@ -48,5 +54,14 @@ resource "aws_ecs_service" "cluster" {
 
   ordered_placement_strategy {
     type = "binpack"
+    field = "cpu"
+  }
+
+  # depends_on = [ 
+  #   aws_ecs_task_definition.cluster
+  # ]
+
+  lifecycle {
+    ignore_changes = [task_definition]
   }
 }
