@@ -42,6 +42,13 @@ resource "aws_ecs_cluster_capacity_providers" "cluster" {
 }
 
 
+resource "aws_ecs_task_definition" "cluster" {
+  count = var.ecs_cluster["JenkinsFargateCluster"].enabled ? 1 : 0
+
+  family = "nginx"
+  container_definitions = file("${path.module}/tasks/nginx.json")
+}
+
 // Currently using a sample nginx container for testing before the more complex jenkins.
 // Again need to update this to be re-usable
 resource "aws_ecs_service" "cluster" {
@@ -49,7 +56,7 @@ resource "aws_ecs_service" "cluster" {
 
   name = "nginx"
   cluster = aws_ecs_cluster.cluster["JenkinsFargateCluster"].id
-  task_definition = file("${path.module}/tasks/nginx.json")
+  task_definition = aws_ecs_task_definition.cluster.arn
   desired_count = 1
 
   ordered_placement_strategy {
@@ -57,9 +64,9 @@ resource "aws_ecs_service" "cluster" {
     field = "cpu"
   }
 
-  # depends_on = [ 
-  #   aws_ecs_task_definition.cluster
-  # ]
+  depends_on = [ 
+    aws_ecs_task_definition.cluster
+  ]
 
   lifecycle {
     ignore_changes = [task_definition]
